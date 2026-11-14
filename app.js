@@ -27,7 +27,7 @@ let reportsUnsubscribe = null;
 function toast(message) {
   $("toast").textContent = message;
   $("toast").classList.add("show");
-  setTimeout(() => $("toast").classList.remove("show"), 2800);
+  setTimeout(() => $("toast").classList.remove("show"), 3000);
 }
 
 function safe(value = "") {
@@ -469,16 +469,33 @@ function setupEvents() {
   $("loginForm").onsubmit = async (e) => {
     e.preventDefault();
     $("loginMessage").textContent = "";
+
+    if (window.location.protocol === "file:") {
+      $("loginMessage").textContent = "Não abra direto pelo arquivo. Acesse pelo link da Vercel ou via Live Server.";
+      return;
+    }
+
     if (!configured) {
       $("loginMessage").textContent = "Configure as credenciais do Firebase em firebase-config.js antes de entrar.";
       return;
     }
+
+    const btn = $("loginForm").querySelector('button[type="submit"]');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Entrando...";
+
     try {
       await signInWithEmailAndPassword(auth, $("email").value.trim(), $("password").value);
     } catch (err) {
+      console.error("Erro no login:", err);
       $("loginMessage").textContent = authError(err);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
     }
   };
+
   $("logoutBtn").onclick = () => signOut(auth);
   document.querySelectorAll(".nav-link").forEach((b) => b.onclick = () => showPage(b.dataset.page));
   document.querySelectorAll("[data-go]").forEach((b) => b.onclick = () => showPage(b.dataset.go));
@@ -495,19 +512,24 @@ function setupEvents() {
 }
 
 function authError(err) {
-  return ({
+  const messages = {
     "auth/invalid-credential": "E-mail ou senha incorretos.",
-    "auth/user-not-found": "Usuário não encontrado.",
+    "auth/user-not-found": "Usuário não encontrado no Firebase.",
     "auth/wrong-password": "Senha incorreta.",
-    "auth/too-many-requests": "Muitas tentativas. Aguarde e tente novamente.",
+    "auth/invalid-email": "Formato de e-mail inválido.",
+    "auth/unauthorized-domain": "Domínio não autorizado! Adicione o endereço da Vercel no Firebase (Authentication > Settings > Authorized domains).",
+    "auth/operation-not-allowed": "Ative o login por E-mail/senha no Firebase (Authentication > Sign-in method).",
+    "auth/invalid-api-key": "Chave de API inválida no firebase-config.js.",
+    "auth/too-many-requests": "Muitas tentativas. Aguarde alguns minutos e tente novamente.",
     "auth/network-request-failed": "Falha de conexão. Verifique sua internet."
-  })[err.code] || "Não foi possível entrar. Verifique os dados e tente novamente.";
+  };
+  return messages[err.code] || `Erro ao entrar (${err.code || err.message})`;
 }
 
 function firebaseError(error) {
   const code = error?.code || "";
-  if (code === "permission-denied") return "Acesso negado pelo Firebase. Confira as regras do Firestore/Storage e o usuário autenticado.";
-  if (code === "failed-precondition") return "O Firestore precisa de um índice. Abra o link de criação indicado no console do navegador.";
+  if (code === "permission-denied") return "Acesso negado pelo Firebase. Confira as regras do Firestore/Storage.";
+  if (code === "failed-precondition") return "O Firestore precisa de um índice. Abra o console do navegador.";
   if (code === "unavailable" || code === "auth/network-request-failed") return "Firebase indisponível. Verifique sua conexão e tente novamente.";
   if (code === "storage/unauthorized") return "Sem permissão para acessar fotografias. Confira as regras do Firebase Storage.";
   return error?.message || "Ocorreu um erro ao comunicar com o Firebase.";
@@ -528,10 +550,17 @@ function printAnnual() {
 function start() {
   initSelects();
   setupEvents();
+
+  if (window.location.protocol === "file:") {
+    $("loginMessage").textContent = "Atenção: abra o site pelo link da Vercel ou Live Server, não clicando duas vezes no index.html.";
+    return;
+  }
+
   if (!configured) {
     $("loginMessage").textContent = "Projeto ainda não conectado ao Firebase. Configure firebase-config.js.";
     return;
   }
+
   onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     if (!user && reportsUnsubscribe) {
