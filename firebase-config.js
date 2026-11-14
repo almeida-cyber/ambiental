@@ -1,6 +1,9 @@
-// 1) Crie um projeto em https://console.firebase.google.com
-// 2) Registre um aplicativo Web e copie as configurações abaixo.
-// 3) Ative Authentication > E-mail/senha, Firestore Database e Storage.
+// CONFIGURAÇÃO DO APLICATIVO WEB FIREBASE
+// Firebase Console > Configurações do projeto > Seus aplicativos > Aplicativo Web.
+// Copie os valores do objeto firebaseConfig fornecido pelo Firebase.
+// Estes dados identificam o aplicativo Web. NÃO coloque aqui chaves privadas,
+// arquivos de conta de serviço ou credenciais administrativas.
+
 export const firebaseConfig = {
   apiKey: "COLOQUE_SUA_API_KEY",
   authDomain: "SEU-PROJETO.firebaseapp.com",
