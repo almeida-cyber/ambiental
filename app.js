@@ -1,10 +1,10 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where, orderBy, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { getFirestore, collection, doc, updateDoc, deleteDoc, query, where, orderBy, setDoc, getDoc, serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js";
 import { firebaseConfig } from "./firebase-config.js";
 
-const configured = firebaseConfig.apiKey !== "COLOQUE_SUA_API_KEY";
+const configured = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.apiKey !== "COLOQUE_SUA_API_KEY" && firebaseConfig.projectId !== "SEU-PROJETO");
 const app = configured ? initializeApp(firebaseConfig) : null;
 const auth = app ? getAuth(app) : null;
 const db = app ? getFirestore(app) : null;
@@ -14,6 +14,7 @@ const months = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","A
 let reports = [];
 let settings = {};
 let currentUser = null;
+let reportsUnsubscribe = null;
 
 function toast(message){$("toast").textContent=message;$("toast").classList.add("show");setTimeout(()=>$("toast").classList.remove("show"),2800)}
 function safe(value=""){return String(value).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
@@ -42,11 +43,38 @@ async function saveReport(e){e.preventDefault();if(!currentUser)return;const car
  const activities=[];for(let i=0;i<cards.length;i++){const a=cards[i];let photos=previous?.activities?.[i]?.photos||[];if(a.files.length)photos=[...photos,...await uploadPhotos(a.files,currentUser.uid,reportRef.id,i)];activities.push({title:a.title,date:a.date,type:a.type,place:a.place,participants:a.participants,description:a.description,photos});}
  const payload={ownerUid:currentUser.uid,month:$("reportMonth").value,year:Number($("reportYear").value),title:$("reportTitle").value.trim(),intro:$("reportIntro").value.trim(),activities,updatedAt:serverTimestamp()};
  if(!id)payload.createdAt=serverTimestamp();
- await (id?updateDoc(reportRef,payload):setDoc(reportRef,payload));$("reportDialog").close();toast("Relatório salvo com sucesso.");await loadReports()}
-async function loadReports(){const q=query(collection(db,"reports"),where("ownerUid","==",currentUser.uid),orderBy("year","desc"),orderBy("month","desc"));const snap=await getDocs(q);reports=snap.docs.map(d=>({id:d.id,...d.data()}));renderReports();renderDashboard();renderAnnual()}
+ try {
+  await (id?updateDoc(reportRef,payload):setDoc(reportRef,payload));
+  $("reportDialog").close();
+  toast("Relatório salvo com sucesso.");
+ } catch (error) {
+  console.error("Erro ao salvar relatório:", error);
+  $("reportMessage").textContent = firebaseError(error);
+ }
+}
+function loadReports(){
+ if (reportsUnsubscribe) reportsUnsubscribe();
+ const q=query(collection(db,"reports"),where("ownerUid","==",currentUser.uid),orderBy("year","desc"),orderBy("month","desc"));
+ reportsUnsubscribe=onSnapshot(q,(snap)=>{
+  reports=snap.docs.map(d=>({id:d.id,...d.data()}));
+  renderReports();renderDashboard();renderAnnual();
+ },(error)=>{
+  console.error("Erro ao acompanhar relatórios:",error);
+  toast(firebaseError(error));
+ });
+}
 function renderReports(){const year=Number($("filterYear").value);const term=$("searchReports").value.toLowerCase();const filtered=reports.filter(r=>r.year===year&&(r.title+" "+months[Number(r.month)-1]).toLowerCase().includes(term));$("reportsList").innerHTML=filtered.length?"":'<div class="empty-state">Nenhum relatório encontrado para este filtro.</div>';filtered.forEach(r=>$("reportsList").append(reportRow(r)))}
 function reportRow(r){const el=document.createElement("article");el.className="report-item";const count=(r.activities||[]).length;el.innerHTML=`<div><h3>${safe(r.title)}</h3><p>${months[Number(r.month)-1]} de ${r.year} · ${count} atividade(s)</p></div><div class="report-actions"><button class="btn secondary edit">Editar</button><button class="btn ghost export">Word</button><button class="btn ghost print">Imprimir / PDF</button><button class="btn ghost delete">Excluir</button></div>`;el.querySelector(".edit").onclick=()=>openDialog(r);el.querySelector(".export").onclick=()=>exportWord(r);el.querySelector(".print").onclick=()=>printReport(r);el.querySelector(".delete").onclick=()=>removeReport(r);return el}
-async function removeReport(r){if(!confirm(`Excluir o relatório "${r.title}"? Essa ação não poderá ser desfeita.`))return;await deleteDoc(doc(db,"reports",r.id));toast("Relatório excluído.");await loadReports()}
+async function removeReport(r){
+ if(!confirm(`Excluir o relatório "${r.title}"? Essa ação não poderá ser desfeita.`))return;
+ try {
+  for(const activity of (r.activities||[])) for(const photo of (activity.photos||[])) {
+   if(photo.path) { try { await deleteObject(ref(storage,photo.path)); } catch(error) { if(error.code !== "storage/object-not-found") console.warn("Não foi possível excluir uma fotografia:",error); } }
+  }
+  await deleteDoc(doc(db,"reports",r.id));
+  toast("Relatório excluído.");
+ } catch(error) { console.error(error); toast(firebaseError(error)); }
+}
 function renderDashboard(){const year=new Date().getFullYear();const current=reports.filter(r=>r.year===year);const acts=current.flatMap(r=>r.activities||[]);$("statReports").textContent=current.length;$("statActivities").textContent=acts.length;$("statPeople").textContent=acts.reduce((s,a)=>s+Number(a.participants||0),0).toLocaleString("pt-BR");$("statMonths").textContent=new Set(current.map(r=>r.month)).size+"/12";$("recentReports").innerHTML="";if(!reports.length){$("recentReports").className="report-list empty-state";$("recentReports").textContent="Nenhum relatório cadastrado ainda."}else{ $("recentReports").className="report-list";reports.slice(0,5).forEach(r=>$("recentReports").append(reportRow(r)))}}
 function annualHTML(year){const list=reports.filter(r=>r.year===year).sort((a,b)=>Number(a.month)-Number(b.month));const acts=list.flatMap(r=>r.activities||[]);const people=acts.reduce((s,a)=>s+Number(a.participants||0),0);let html=`<div class="annual-cover"><p class="eyebrow">CONSOLIDAÇÃO ANUAL</p><h2>Relatório Anual de Atividades Ambientais — ${year}</h2><p>${safe(settings.cityHall||"Prefeitura Municipal")} · ${safe(settings.department||"Secretaria Municipal de Meio Ambiente")}</p><p><strong>Responsável:</strong> ${safe(settings.responsible||"Não informado")} · <strong>Município:</strong> ${safe(settings.municipality||"Não informado")}</p></div><div class="stats-grid"><div class="stat-card"><span>Relatórios</span><strong>${list.length}</strong></div><div class="stat-card"><span>Atividades</span><strong>${acts.length}</strong></div><div class="stat-card"><span>Participantes</span><strong>${people}</strong></div><div class="stat-card"><span>Meses registrados</span><strong>${new Set(list.map(r=>r.month)).size}/12</strong></div></div><h3>Resumo das atividades</h3>`;
  if(!list.length)html+='<p class="muted">Nenhum relatório cadastrado para este ano.</p>';
@@ -62,5 +90,35 @@ async function loadSettings(){const snap=await getDoc(doc(db,"settings",currentU
 async function saveSettings(e){e.preventDefault();settings={cityHall:$("cityHall").value.trim(),department:$("department").value.trim(),responsible:$("responsible").value.trim(),role:$("role").value.trim(),municipality:$("municipality").value.trim()};await setDoc(doc(db,"settings",currentUser.uid),settings);$("settingsMessage").textContent="Identificação salva.";renderAnnual();toast("Configurações atualizadas.")}
 function setupEvents(){$("loginForm").onsubmit=async e=>{e.preventDefault();if(!configured){$("loginMessage").textContent="Configure as credenciais do Firebase em js/firebase-config.js antes de entrar.";return}try{await signInWithEmailAndPassword(auth,$("email").value,$("password").value)}catch(err){$("loginMessage").textContent=authError(err)}};$("logoutBtn").onclick=()=>signOut(auth);document.querySelectorAll(".nav-link").forEach(b=>b.onclick=()=>showPage(b.dataset.page));document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>showPage(b.dataset.go));$("newReportBtn").onclick=$("newReportTop").onclick=()=>openDialog();$("closeDialog").onclick=$("cancelDialog").onclick=()=>$("reportDialog").close();$("addActivity").onclick=()=>$("activitiesContainer").append(activityTemplate());$("reportForm").onsubmit=saveReport;$("filterYear").onchange=renderReports;$("searchReports").oninput=renderReports;$("annualYear").onchange=renderAnnual;$("exportAnnualWord").onclick=exportAnnual;$("printAnnual").onclick=printAnnual;$("settingsForm").onsubmit=saveSettings}
 function authError(err){return ({ "auth/invalid-credential":"E-mail ou senha incorretos.","auth/user-not-found":"Usuário não encontrado.","auth/wrong-password":"Senha incorreta.","auth/too-many-requests":"Muitas tentativas. Aguarde e tente novamente.","auth/network-request-failed":"Falha de conexão. Verifique sua internet."})[err.code]||"Não foi possível entrar. Verifique os dados e tente novamente."}
-function start(){initSelects();setupEvents();if(!configured){$("loginMessage").textContent="Projeto ainda não conectado ao Firebase. Configure js/firebase-config.js.";return}onAuthStateChanged(auth,async user=>{currentUser=user;$("loginView").classList.toggle("hidden",!!user);$("appView").classList.toggle("hidden",!user);if(user){$("userEmail").textContent=user.email||"Usuário autenticado";try{await loadSettings();await loadReports()}catch(e){console.error(e);toast("Erro ao carregar dados. Confira as regras do Firebase.")}}})}
+function firebaseError(error){
+ const code=error?.code||"";
+ if(code==="permission-denied") return "Acesso negado pelo Firebase. Confira as regras do Firestore/Storage e o usuário autenticado.";
+ if(code==="failed-precondition") return "O Firestore precisa de um índice. Abra o link de criação indicado no console do navegador.";
+ if(code==="unavailable"||code==="auth/network-request-failed") return "Firebase indisponível. Verifique sua conexão e tente novamente.";
+ if(code==="storage/unauthorized") return "Sem permissão para acessar fotografias. Confira as regras do Firebase Storage.";
+ return error?.message||"Ocorreu um erro ao comunicar com o Firebase.";
+}
+function printAnnual(){
+ const year=Number($("annualYear").value);
+ const w=window.open("","_blank");
+ if(!w){toast("Permita pop-ups para imprimir o relatório.");return;}
+ w.document.write(documentShell(`Relatório anual ${year}`,$("annualSummary").innerHTML));
+ w.document.close();
+ w.onload=()=>w.print();
+}
+function start(){
+ initSelects();setupEvents();
+ if(!configured){$("loginMessage").textContent="Projeto ainda não conectado ao Firebase. Configure js/firebase-config.js.";return;}
+ onAuthStateChanged(auth,async user=>{
+  currentUser=user;
+  if(!user && reportsUnsubscribe){reportsUnsubscribe();reportsUnsubscribe=null;reports=[];}
+  $("loginView").classList.toggle("hidden",!!user);
+  $("appView").classList.toggle("hidden",!user);
+  if(user){
+   $("userEmail").textContent=user.email||"Usuário autenticado";
+   try{await loadSettings();loadReports();}
+   catch(e){console.error(e);toast(firebaseError(e));}
+  }
+ });
+}
 start();
