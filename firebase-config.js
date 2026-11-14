@@ -1,14 +1,22 @@
-// CONFIGURAÇÃO DO APLICATIVO WEB FIREBASE
-// Firebase Console > Configurações do projeto > Seus aplicativos > Aplicativo Web.
-// Copie os valores do objeto firebaseConfig fornecido pelo Firebase.
-// Estes dados identificam o aplicativo Web. NÃO coloque aqui chaves privadas,
-// arquivos de conta de serviço ou credenciais administrativas.
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
 
-export const firebaseConfig = {
-  apiKey: "COLOQUE_SUA_API_KEY",
-  authDomain: "SEU-PROJETO.firebaseapp.com",
-  projectId: "SEU-PROJETO",
-  storageBucket: "SEU-PROJETO.firebasestorage.app",
-  messagingSenderId: "SEU_MESSAGING_SENDER_ID",
-  appId: "SEU_APP_ID"
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyDXNapsrDEKVm9f2_r92Jy07qk-KQkURx8",
+  authDomain: "ambiente-86b84.firebaseapp.com",
+  databaseURL: "https://ambiente-86b84-default-rtdb.firebaseio.com",
+  projectId: "ambiente-86b84",
+  storageBucket: "ambiente-86b84.firebasestorage.app",
+  messagingSenderId: "769415872643",
+  appId: "1:769415872643:web:4609d8d4e462134c905bb6",
+  measurementId: "G-Y2P23H8DBX"
 };
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
