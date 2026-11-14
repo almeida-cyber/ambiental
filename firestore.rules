@@ -1,13 +1,32 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() { return request.auth != null; }
-    match /reports/{reportId} {
-      allow read, create: if signedIn() && request.resource.data.ownerUid == request.auth.uid;
-      allow update: if signedIn() && resource.data.ownerUid == request.auth.uid
-                    && request.resource.data.ownerUid == request.auth.uid;
-      allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
+    function signedIn() {
+      return request.auth != null;
     }
+
+    function ownsReport() {
+      return signedIn() && resource.data.ownerUid == request.auth.uid;
+    }
+
+    match /reports/{reportId} {
+      allow get, list: if ownsReport();
+
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.year is int
+        && request.resource.data.month is string
+        && request.resource.data.activities is list;
+
+      allow update: if ownsReport()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.year is int
+        && request.resource.data.month is string
+        && request.resource.data.activities is list;
+
+      allow delete: if ownsReport();
+    }
+
     match /settings/{userId} {
       allow read, write: if signedIn() && request.auth.uid == userId;
     }
