@@ -4,6 +4,9 @@
     "ignore": [
       "firebase.json",
       ".firebaserc",
+      "firestore.rules",
+      "storage.rules",
+      "README.md",
       "**/.*",
       "**/node_modules/**",
       "firebase-debug.log",
