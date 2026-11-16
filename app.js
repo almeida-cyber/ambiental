@@ -25,7 +25,11 @@ const configured = Boolean(
 
 const app = configured ? initializeApp(firebaseConfig) : null;
 const auth = app ? getAuth(app) : null;
-const db = app ? getFirestore(app) : null;
+const db = app
+  ? initializeFirestore(app, {
+      experimentalForceLongPolling: true
+    })
+  : null;
 const storage = app ? getStorage(app) : null;
 
 const $ = (id) => document.getElementById(id);
