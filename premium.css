@@ -44,3 +44,17 @@ input:focus,select:focus,textarea:focus{border-color:#159e77;box-shadow:0 0 0 4p
 @media(max-width:650px){.sidebar{position:static;width:auto;padding:15px;border-right:0}.sidebar-brand{padding-bottom:12px;margin-bottom:10px}.sidebar nav{display:flex;gap:5px;overflow-x:auto}.sidebar .nav-link{white-space:nowrap;padding:10px 12px}.sidebar-bottom{padding-top:10px}.main-content{margin-left:0;padding:18px}.login-card{padding:27px}.welcome:after{width:150px;height:150px;right:-60px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 @media print{.sidebar{display:none!important}.main-content{margin:0;padding:0}.stat-card{box-shadow:none}}
+
+/* Hierarquia visual institucional — segunda etapa */
+.sidebar-section-label{font-size:10px;letter-spacing:1.7px;font-weight:800;color:#7f94aa;margin:4px 13px 13px}
+.topbar-subtitle{color:#78869a;font-size:13px;margin:7px 0 0;max-width:480px}
+.kpi-heading{margin:30px 0 15px}
+.kpi-heading h2{font-size:19px;margin:2px 0}
+.data-hint{font-size:12px;color:#7a899a;background:#fff;border:1px solid #e5eaf1;padding:8px 12px;border-radius:999px}
+.stats-grid{margin-top:0}
+.stat-card{min-height:144px}
+.stat-card span{font-weight:600}
+.stat-card strong{font-size:clamp(28px,3vw,36px);letter-spacing:-.05em}
+.section-heading:not(.kpi-heading){margin-top:30px}
+.login-card .eyebrow{font-size:11px}
+@media(max-width:650px){.sidebar-section-label{display:none}.topbar-subtitle{font-size:12px}.kpi-heading{align-items:flex-start;flex-direction:column}.data-hint{font-size:11px}.stat-card{min-height:125px}}
