@@ -4,7 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#176b4b">
-  <title>Sistema de Gestão Ambiental</title>
+  <title>SGA | Painel de Gestão Ambiental</title>
+  <meta name="description" content="Sistema de Gestão Ambiental — acompanhamento de relatórios, atividades e indicadores ambientais.">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="premium.css">
 </head>
@@ -12,7 +13,7 @@
   <div id="loginView" class="login-shell">
     <form id="loginForm" class="login-card">
       <div class="brand-mark">SGA</div>
-      <p class="eyebrow">SECRETARIA MUNICIPAL</p>
+      <p class="eyebrow">SEMAB · GESTÃO AMBIENTAL</p>
       <h1>Sistema de Gestão Ambiental</h1>
       <p class="muted">Organização de ações, relatórios e registros ambientais.</p>
       <label for="email">E-mail</label>
@@ -27,7 +28,8 @@
 
   <div id="appView" class="app-shell hidden">
     <aside class="sidebar">
-      <div class="sidebar-brand"><div class="brand-mark small">SGA</div><div><strong>Gestão Ambiental</strong><small>Relatórios e ações</small></div></div>
+      <div class="sidebar-brand"><div class="brand-mark small">SGA</div><div><strong>Gestão Ambiental</strong><small>SEMAB · Painel institucional</small></div></div>
+      <p class="sidebar-section-label">ESPAÇO DE TRABALHO</p>
       <nav>
         <button class="nav-link active" data-page="dashboard">▦ <span>Dashboard</span></button>
         <button class="nav-link" data-page="reports">▤ <span>Relatórios mensais</span></button>
@@ -39,12 +41,13 @@
 
     <main class="main-content">
       <header class="topbar">
-        <div><p class="eyebrow">PAINEL DE CONTROLE</p><h1 id="pageTitle">Dashboard</h1></div>
+        <div><p class="eyebrow">SEMAB / VISÃO GERAL</p><h1 id="pageTitle">Dashboard</h1><p class="topbar-subtitle">Acompanhe as ações e os resultados ambientais em um só lugar.</p></div>
         <button class="btn primary" id="newReportTop">＋ Novo relatório</button>
       </header>
 
       <section id="dashboardPage" class="page">
         <div class="welcome"><div><p class="eyebrow light">ACOMPANHAMENTO AMBIENTAL</p><h2>Organize suas ações. Registre seus resultados.</h2><p>Acompanhe atividades realizadas com escolas, comunidades e população.</p></div><div class="welcome-icon">🌱</div></div>
+        <div class="section-heading kpi-heading"><div><p class="eyebrow">INDICADORES</p><h2>Resumo de desempenho</h2></div><span class="data-hint">Dados dos relatórios cadastrados</span></div>
         <div class="stats-grid">
           <article class="stat-card"><span>Relatórios cadastrados</span><strong id="statReports">0</strong><small>No ano selecionado</small></article>
           <article class="stat-card"><span>Atividades registradas</span><strong id="statActivities">0</strong><small>Ações ambientais</small></article>
